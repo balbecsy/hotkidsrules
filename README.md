@@ -1,1 +1,2 @@
-纯自用（。
+Proxy Rules
+
