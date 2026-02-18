@@ -1,233 +1,223 @@
-# Port of HTTP(S) proxy server on the local end
-# port: 7890
+# 通用设置
 
-# Port of SOCKS5 proxy server on the local end
-# socks-port: 7891
+# port: 7890 # HTTP(S) 代理服务器端口
+# socks-port: 7891 # SOCKS5 代理端口
+mixed-port: 7893 # HTTP(S) 和 SOCKS 代理混合端口
+# redir-port: 7892 # 透明代理端口，用于 Linux 和 MacOS
+# tproxy-port: 7893 # 透明代理端口，用于 Linux (TProxy TCP and TProxy UDP)
 
-# Transparent proxy server port for Linux and macOS (Redirect TCP and TProxy UDP)
-# redir-port: 7892
+allow-lan: true # 允许局域网连接
+bind-address: '*' # 绑定 IP 地址，仅作用于 allow-lan 为 true，'*' 表示所有地址
 
-# Transparent proxy server port for Linux (TProxy TCP and TProxy UDP)
-# tproxy-port: 7893
-
-# HTTP(S) and SOCKS5 server on the same port
-mixed-port: 7893
-
-# authentication of local SOCKS5/HTTP(S) server
-# authentication:
-#  - "user1:pass1"
-#  - "user2:pass2"
-
-# Set to true to allow connections to the local-end server from
-# other LAN IP addresses
-allow-lan: true
-
-# This is only applicable when `allow-lan` is `true`
-# '*': bind all IP addresses
-# 192.168.122.11: bind a single IPv4 address
-# "[aaaa::a8aa:ff:fe09:57d8]": bind a single IPv6 address
-bind-address: '*'
-
-# Clash router working mode
-# rule: rule-based packet routing
-# global: all packets will be forwarded to a single endpoint
-# direct: directly forward the packets to the Internet
 mode: rule
 
-# Clash by default prints logs to STDOUT
-# info / warning / error / debug / silent
+# 日志等级 silent/error/warning/info/debug
 log-level: info
 
-# When set to false, resolver won't translate hostnames to IPv6 addresses
+# 开启 IPv6 总开关，关闭阻断所有 IPv6 链接和屏蔽 DNS 请求 AAAA 记录
 ipv6: false
 
-# RESTful web API listening address
+# RESTful API 监听地址
 external-controller: 127.0.0.1:9090
 
-# A relative path to the configuration directory or an absolute path to a
-# directory in which you put some static web resource. Clash core will then
-# serve it at `${API}/ui`.
-# external-ui: folder
-
-# Secret for the RESTful API (optional)
-# Authenticate by spedifying HTTP header `Authorization: Bearer ${secret}`
-# ALWAYS set a secret if RESTful API is listening on 0.0.0.0
-# secret: ""
-
-# Outbound interface name
+# 设置出口网卡
 # interface-name: eth0
 
-# Static hosts for DNS server and connection establishment (like /etc/hosts)
-#
-# Wildcard hostnames are supported (e.g. *.clash.dev, *.foo.*.example.com)
-# Non-wildcard domain names have a higher priority than wildcard domain names
-# e.g. foo.example.com > *.example.com > .example.com
-# P.S. +.foo.com equals to .foo.com and foo.com
+# 性能设置
+
+# 统一延迟
+# 去除握手等额外延迟，更准确反映节点延迟
+unified-delay: true
+
+# TCP 并发连接所有 IP，将使用最快握手的 TCP
+tcp-concurrent: true
+
+# 全局 TLS 指纹，优先级低于 proxy 内的 client-fingerprint
+# 可选：chrome/firefox/safari/ios/random/none
+global-client-fingerprint: chrome
+
+# 进程匹配模式
+# always - 开启，强制匹配所有进程
+# strict - 默认，由 mihomo 判断是否开启
+# off - 不匹配进程，推荐在路由器上使用此模式
+find-process-mode: strict
+
+# 连接设置
+
+# TCP Keep-Alive 间隔
+keep-alive-interval: 30
+
+# GeoData 设置
+
+# 是否自动更新 geodata
+geo-auto-update: true
+
+# 更新间隔，单位：小时
+geo-update-interval: 24
+
+# 自定义 geodata url
+geox-url:
+  geoip: "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat"
+  geosite: "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat"
+  mmdb: "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/Country.mmdb"
+
+# Hosts 设置
+
+# 类似于 /etc/hosts，仅支持配置单个 IP
 hosts:
-  # '*.clash.dev': 127.0.0.1
-  # '.dev': 127.0.0.1
-  # 'alpha.clash.dev': '::1'
+  '*.clash.dev': 127.0.0.1
+  '.dev': 127.0.0.1
+  'localhost': 127.0.0.1
 
-  # Firebase Cloud Messaging
-  'mtalk.google.com': 108.177.125.188
-  # Google Dl
-  'dl.google.com': 180.163.151.161
-  'dl.l.google.com': 180.163.151.161
+# 配置持久化
 
-# DNS server settings
-# This section is optional. When not present, the DNS server will be disabled.
+profile:
+  # 存储 select 选择记录
+  store-selected: true
+  # 持久化 fake-ip
+  store-fake-ip: true
+
+# 嗅探域名
+
+sniffer:
+  enable: true
+  # 是否使用嗅探结果作为实际访问，默认 true
+  # 全局配置，优先级低于 sniffer.sniff 实际配置
+  override-destination: false
+  sniff:
+    HTTP:
+      # 需要嗅探的端口
+      ports: [80, 8080-8880]
+      # 可覆盖 sniffer.override-destination
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+
+# DNS 设置
+
 dns:
   enable: true
-  listen: 0.0.0.0:53
-  # ipv6: false # when the false, response to AAAA questions will be empty
+  # 开启 DNS 服务器监听
+  listen: 0.0.0.0:1053
+  # false 将返回 AAAA 的空结果
+  ipv6: false
 
-  # These nameservers are used to resolve the DNS nameserver hostnames below.
-  # Specify IP addresses only
+  # 用于解析 nameserver，fallback 以及其他 DNS 服务器配置的 DNS 服务域名
+  # 只能使用纯 IP 地址，可使用加密 DNS
   default-nameserver:
-    - 119.29.29.29
     - 223.5.5.5
-    - 182.254.116.116
-    
-  enhanced-mode: fake-ip # or redir-host
-  fake-ip-range: 198.18.0.1/16 # Fake IP addresses pool CIDR
-  # use-hosts: true # lookup hosts and return IP record
+    - 119.29.29.29
 
-  # Hostnames in this list will not be resolved with fake IPs
-  # i.e. questions to these domain names will always be answered with their
-  # real IP addresses
+  enhanced-mode: fake-ip
+  # fake-ip 池设置
+  fake-ip-range: 198.18.0.1/16
+
+  # DNS 缓存算法
+  cache-algorithm: arc
+
+  # DNS 缓存大小
+  cache-size: 4096
+
+  # 是否开启 DoH 支持 HTTP/3，将并发尝试
+  prefer-h3: false
+
+  # 配置后面的 nameserver、fallback 和 nameserver-policy 向 DNS 服务器的连接过程是否遵守 rules 规则
+  # 如果为 false（默认值）则这三部分的 DNS 服务器在未特别指定的情况下会直连
+  # 如果为 true，将会按照 rules 的规则匹配链接方式（走代理或直连）
+  respect-rules: false
+
+  # 配置 fake-ip-filter 的匹配模式，默认为 blacklist，即如果匹配成功不返回 fake-ip
+  # 可设置为 whitelist，即只有匹配成功才返回 fake-ip
+  fake-ip-filter-mode: blacklist
+
+  # 配置不使用 fake-ip 的域名
   fake-ip-filter:
+    # 局域网与本地服务
     - '*.lan'
-    - '*.localdomain'
-    - '*.example'
-    - '*.invalid'
-    - '*.localhost'
-    - '*.test'
     - '*.local'
+    - '*.localdomain'
     - '*.home.arpa'
+    - '*.localhost'
     - 'localhost.ptlogin2.qq.com'
-    # Stun Services
-    - '+.stun.*.*'
-    - '+.stun.*.*.*'
-    - '+.stun.*.*.*.*'
-    - '+.stun.*.*.*.*.*'
-    # Google Voices
-    - 'lens.l.google.com'
-    # Nintendo Switch STUN
-    - '*.n.n.srv.nintendo.net'
-    # PlayStation STUN
-    - '+.stun.playstation.net'
-    # XBox
-    - 'xbox.*.*.microsoft.com'
-    - '*.*.xboxlive.com'
-    # Microsoft Captive Portal
-    - '*.msftncsi.com'
-    - '*.msftconnecttest.com'
-    # Bilibili CDN
-    - '*.mcdn.bilivideo.cn'
-    # Windows Default LAN WorkGroup
     - 'WORKGROUP'
-  
-  # Supports UDP, TCP, DoT, DoH. You can specify the port to connect to.
-  # All DNS questions are sent directly to the nameserver, without proxies
-  # involved. Clash answers the DNS question with the first result gathered.
+    # STUN 服务
+    - '+.stun.*'
+    - '*.srv.nintendo.net'
+    - 'xbox.*.microsoft.com'
+    - 'xbox.*.*.microsoft.com'
+    - '*.xboxlive.com'
+    # 网络检测
+    - '*.msftconnecttest.com'
+    - '*.msftncsi.com'
+    - 'connectivitycheck.gstatic.com'
+    - 'connectivitycheck.android.com'
+    - 'connectivitycheck.platform.hicloud.com'
+    - 'connect.rom.miui.com'
+    - 'captive.apple.com'
+    - 'network-test.debian.org'
+    - 'detectportal.firefox.com'
+    # 特殊服务
+    - 'lens.l.google.com'
+    - '*.mcdn.bilivideo.cn'
+    - '*.battlenet.com.cn'
+    - '*.battlenet.com'
+    - '*.blzstatic.cn'
+    - '*.battle.net'
+    # Steam
+    - '*.cm.steampowered.com'
+    - '*.steamcontent.com'
+    # Tailscale / ZeroTier
+    - '*.tailscale.com'
+    - '*.zerotier.com'
+    # Spotify
+    - '*.spotify.com'
+
+  # DNS 主要域名配置
+  # 支持 UDP、TCP、DoT、DoH、DoQ
+  # 这部分为主要 DNS 配置，影响所有直连，确保使用对大陆解析精准的 DNS
   nameserver:
-    - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
-    # - tls://dns.rubyfish.cn:853 # DNS over TLS
-    # - https://1.1.1.1/dns-query # DNS over HTTPS
-    - dhcp://en0 # dns from dhcp
-    # - '8.8.8.8#en0'
-
-  # When `fallback` is present, the DNS server will send concurrent requests
-  # to the servers in this section along with servers in `nameservers`.
-  # The answers from fallback servers are used when the GEOIP country
-  # is not `CN`.
-  fallback:
-    - tls://8.8.4.4
-    - tls://1.1.1.1
     - https://doh.pub/dns-query
 
-  # If IP addresses resolved with servers in `nameservers` are in the specified
-  # subnets below, they are considered invalid and results from `fallback`
-  # servers are used instead.
-  #
-  # IP address resolved with servers in `nameserver` is used when
-  # `fallback-filter.geoip` is true and when GEOIP of the IP address is `CN`.
-  #
-  # If `fallback-filter.geoip` is false, results from `nameserver` nameservers
-  # are always used if not match `fallback-filter.ipcidr`.
-  #
-  # This is a countermeasure against DNS pollution attacks.
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    domain:
-      - '+.google.+'
-      - '+.googleapis.com'
-      - '+.googlevideo.com'
-      - '+.gstatic.cn'
-      - '+.gstatic.com'
-      - '+.gvt1.com'
-      - '+.gvt2.com'
-      - '+.recaptcha.net'
-      - '+.twimg.com'
-      - '+.twitter.com'
-      - '+.youtube.com'
-      - '+.ytimg.com'
-      - 'twitter.com'
-      - 't.co'
-      - 't.me'
-      - 'telegra.ph'
-      - 'youtu.be'
+# TUN 设置
 
-  # Lookup domains via specific nameservers
-  nameserver-policy:
-    # Alibaba
-    '*.alibaba.cn': '223.5.5.5'
-    '*.alibaba.com.cn': '223.5.5.5'
-    '*.china.alibaba.com': '223.5.5.5'
-    '*.1688.com': '223.5.5.5'
-    '*.taobao.com': '223.5.5.5'
-    '*.tbcache.com': '223.5.5.5'
-    '*.tmall.com': '223.5.5.5'
-    '*.alicdn.com': '223.5.5.5'
-    '*.aliyundrive.com': '223.5.5.5'
-    '*.aliyun.*': '223.5.5.5'
-    '*.aliyuncdn.*': '223.5.5.5'
-    '*.aliyunddos????.com': '223.5.5.5'
-    '*.aliyuncs.com': '223.5.5.5'
-    '*.aliyundunwaf.com': '223.5.5.5'
-    '*.aliapp.com': '223.5.5.5'
-    '*.aliapp.org': '223.5.5.5'
-    '*.alibabausercontent.com': '223.5.5.5'
-    '*.mmstat.com': '223.5.5.5'
-    'tb.cn': '223.5.5.5'
-    # Tencent
-    '*.qq.com': '119.29.29.29'
-    '*.qpic.com': '119.29.29.29'
-    '*.qlogo.cn': '119.29.29.29'
-    '*.weixin.com': '119.29.29.29'
-    '*.wechat.com': '119.29.29.29'
-    '*.tenpay.com': '119.29.29.29'
-    '*.wechatpay.com': '119.29.29.29'
-    '*.weixinbridge.com': '119.29.29.29'
-    '*.servicewechat.com': '119.29.29.29'
-#
-# https://github.com/Dreamacro/clash/wiki/premium-core-features
-#
 tun:
   enable: true
-  stack: system # or gvisor
+
+  # 网络栈模式
+  # system - 性能最高，兼容性一般
+  # gvisor - 兼容性好，性能较低
+  # mixed - TCP 走系统栈，UDP 走 gvisor（推荐）
+  stack: mixed
+
+  # 需要劫持的 DNS
   dns-hijack:
-    - 198.18.0.2:53
-    - tcp://any:53
+    - any:53
 
-  auto-route: true # auto set global route
-  auto-detect-interface: true # conflict with interface-name
+  # 配置路由表
+  auto-route: true
+
+  # 自动识别出口网卡
+  auto-detect-interface: true
+
+  # 将所有连接路由到 tun 来防止泄漏，但你的设备将无法被其他设备访问
+  # strict-route: false
+
+  # 启用 auto-route 时使用自定义路由而不是默认路由
+  # route-address:
+  #   - 0.0.0.0/1
+  #   - 128.0.0.0/1
+
+  # 排除路由，这些网段不经过 TUN
+  # route-exclude-address:
+  #   - 192.168.31.0/24
   
-proxies:
-
-# 服务器节点订阅
+# 本地节点配置（订阅为空）
+proxies: []
+  
+# 服务器订阅配置
 proxy-providers:
   Server:
     type: http
@@ -248,7 +238,7 @@ proxy-groups:
   # 代理节点选项
   - name: "🔰 Proxy"
     type: select
-    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
     proxies:
       - 🇭🇰 Hong Kong
       - 🇨🇳 Taiwan
@@ -289,7 +279,7 @@ proxy-groups:
       - 🔰 Proxy
       - 🇺🇸 America
       
-  - name: "🤖 GenAI"
+  - name: "🤖 AIGC"
     type: select
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png
     proxies:
@@ -301,14 +291,23 @@ proxy-groups:
   # 去广告以及隐私追踪保护、反运营商劫持开关
   - name: "🚧 AdGuard"
     type: select
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Clubhouse_2.png
+    proxies:
+      - ⛔️ REJECT
+      - 🔘 DIRECT
+      
+  # 阻止
+  - name: "⛔️ REJECT"
+    type: select
+    hidden: true
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Reject.png
     proxies:
       - REJECT
-      - DIRECT
 
   # 直连
   - name: "🔘 DIRECT"
     type: select
+    hidden: true
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Direct.png
     proxies:
       - DIRECT
@@ -316,7 +315,7 @@ proxy-groups:
   # UN
   - name: "🇺🇳 Server"
     type: select
-    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Clubhouse_1.png
     use:
       - Server
 
@@ -376,14 +375,7 @@ rule-providers:
     path: ./Provider/RuleSet/Unbreak.yaml
     url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/Unbreak.yaml
     interval: 86400
-    
-  AdBlock:
-    type: http
-    behavior: domain
-    path: ./Provider/RuleSet/Guard/Reject.yaml
-    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt
-    interval: 86400
-    
+
   HTTPDNS:
     type: http
     behavior: classical
@@ -391,6 +383,13 @@ rule-providers:
     url: https://raw.githubusercontent.com/VirgilClyne/GetSomeFries/main/ruleset/HTTPDNS.Block.yaml
     interval: 86400
     
+  Advertising:
+    type: http
+    behavior: domain
+    path: ./Provider/RuleSet/Guard/Reject.yaml
+    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt
+    interval: 86400
+      
   Streaming+:
     type: http
     behavior: classical
@@ -418,19 +417,26 @@ rule-providers:
     path: ./Provider/RuleSet/Streaming/Streaming_US.yaml
     url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/Streaming_US.yaml
     interval: 86400
-
-  Streaming SEA:
-    type: http
-    behavior: classical
-    path: ./Provider/RuleSet/Streaming/Streaming_SEA.yaml
-    url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/Streaming_SEA.yaml
-    interval: 86400
     
   Streaming:
     type: http
     behavior: classical
     path: ./Provider/RuleSet/Streaming/Streaming.yaml
     url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/Streaming.yaml
+    interval: 86400
+
+  CNTV:
+    type: http
+    behavior: classical
+    path: ./Provider/RuleSet/Streaming/CNTV.yaml
+    url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/CNTV.yaml
+    interval: 86400
+
+  AIGC:
+    type: http
+    behavior: classical
+    path: ./Provider/RuleSet/Extra/GenAI.yaml
+    url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/GenAI.yaml
     interval: 86400
     
   Apple CDN:
@@ -444,14 +450,7 @@ rule-providers:
     type: http
     behavior: classical
     path: ./Provider/RuleSet/Extra/Apple.yaml
-    url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/Apple.yaml
-    interval: 86400
-    
-  GenAI:
-    type: http
-    behavior: classical
-    path: ./Provider/RuleSet/Extra/GenAI.yaml
-    url: https://raw.githubusercontent.com/HotKids/Rules/master/Clash/RuleSet/GenAI.yaml
+    url: https://ruleset.skk.moe/Clash/non_ip/apple_services.txt
     interval: 86400
     
   Global:
@@ -468,18 +467,25 @@ rule-providers:
     url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt
     interval: 86400
 
+  CNASN:
+    type: http
+    behavior: classical
+    path: ./Provider/RuleSet/Extra/CNASN.yaml
+    url: https://raw.githubusercontent.com/VirgilClyne/GetSomeFries/main/ruleset/ASN.China.yaml
+    interval: 86400
+    
   CNCIDR:
     type: http
     behavior: ipcidr
     path: ./Provider/RuleSet/Extra/CNCIDR.yaml
-    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt
+    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt
     interval: 86400
     
   LAN:
     type: http
     behavior: ipcidr
     path: ./Provider/RuleSet/Extra/LANCIDR.yaml
-    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
+    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt
     interval: 86400
 
 # 规则
@@ -488,8 +494,8 @@ rules:
   - RULE-SET,Unbreak,🔘 DIRECT
   
   # AdBlock
-  - RULE-SET,AdBlock,🚧 AdGuard
   - RULE-SET,HTTPDNS,🚧 AdGuard
+  - RULE-SET,Advertising,🚧 AdGuard
 
   # Global Area Network
 
@@ -498,27 +504,32 @@ rules:
   - RULE-SET,Streaming TW,🇨🇳 Taiwan
   - RULE-SET,Streaming JP,🇯🇵 Japan
   - RULE-SET,Streaming US,🇺🇸 America
-  - RULE-SET,Streaming SEA,📺 CNTV
   - RULE-SET,Streaming,🎬 Streaming
+  
+  # CNTV
+  - RULE-SET,CNTV,📺 CNTV
 
+  # AIGC
+  - RULE-SET,AIGC,🤖 AIGC
+  
   # Apple
   - RULE-SET,Apple CDN,🔘 DIRECT
   - RULE-SET,Apple,🍎 Apple
 
-  # GenAI
-  - RULE-SET,GenAI,🤖 GenAI
-  
   # (DNS Cache Pollution) / (IP Blackhole) / (Region-Restricted Access Denied) / (Network Jitter)
   - RULE-SET,Global,🔰 Proxy
 
-   # China Area Network
+  # China Area Network
   - RULE-SET,China,🔘 DIRECT
+  - RULE-SET,CNASN,🔘 DIRECT
   - RULE-SET,CNCIDR,🔘 DIRECT
   
   # Local Area Network
   - RULE-SET,LAN,🔘 DIRECT
   
-  # GeoIP China	
+  # GeoIP
+  - GEOSITE,cn,🔘 DIRECT
   - GEOIP,CN,🔘 DIRECT
- 
+  - GEOSITE,geolocation-!cn,🔰 Proxy
+  
   - MATCH,🔰 Proxy
